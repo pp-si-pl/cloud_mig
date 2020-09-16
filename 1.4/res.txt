@@ -1,0 +1,30 @@
+D:\DevProjects>http POST localhost:8080/profile username=unamerkel password=changeme firstName=Una lastName=Merkel email=unamerkel@example.com
+HTTP/1.1 200
+Connection: keep-alive
+Content-Length: 0
+Date: Wed, 16 Sep 2020 20:31:44 GMT
+Keep-Alive: timeout=60
+
+D:\DevProjects>http localhost:8080/profile/unamerkel
+HTTP/1.1 200
+Connection: keep-alive
+Content-Type: application/json
+Date: Wed, 16 Sep 2020 20:32:14 GMT
+Keep-Alive: timeout=60
+Transfer-Encoding: chunked
+
+{
+    "email": "unamerkel@example.com",
+    "firstName": "Una",
+    "id": 8,
+    "lastName": "Merkel",
+    "password": "changeme",
+    "username": "unamerkel"
+}
+
+D:\DevProjects>http localhost:8080/profile/russcolombo
+HTTP/1.1 404
+Connection: keep-alive
+Content-Length: 0
+Date: Wed, 16 Sep 2020 20:32:28 GMT
+Keep-Alive: timeout=60
