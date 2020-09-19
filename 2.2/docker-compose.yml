@@ -1,0 +1,21 @@
+version: '3.7'
+
+services:
+
+  db:
+    image: mysql:5.7
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: pass12345
+      MYSQL_DATABASE: profiles
+      MYSQL_USER: empuser
+      MYSQL_PASSWORD: password		
+    volumes:
+      - d:\devprojects\storage:/var/lib/mysql
+      - d:\devprojects\schema:/docker-entrypoint-initdb.d
+    ports:
+      - 3306:3306
+  profile:
+    image: piotrporzucek/profile
+    ports:
+      - 8080:8080	
