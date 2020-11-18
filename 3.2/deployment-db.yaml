@@ -1,0 +1,135 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-pv-volume2
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data2"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pv-claim2
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+  name: db
+  labels:
+    app: db
+spec:  
+  ports:
+  - port: 3306
+    name: db
+    targetPort: 3306    
+  selector:
+    app: db
+---
+apiVersion: v1
+data: 
+  database: "profiles"
+  user: "empuser" 
+kind: ConfigMap
+metadata:
+  name: db-config
+  namespace: development
+---
+apiVersion: v1
+data: 
+  initdb.sql: |     
+    CREATE DATABASE profiles;
+    CREATE USER empuser@'localhost' IDENTIFIED BY 'password';
+    CREATE USER empuser@'%' IDENTIFIED BY 'password';
+    ALTER USER 'empuser'@'localhost' IDENTIFIED WITH mysql_native_password BY 'password';
+    ALTER USER 'empuser'@'%' IDENTIFIED WITH mysql_native_password BY 'password';    
+    GRANT ALL PRIVILEGES ON profiles.* to empuser@'localhost';
+    GRANT ALL PRIVILEGES ON profiles.* to empuser@'%';
+kind: ConfigMap
+metadata:
+  name: mysql-initdb-config
+  namespace: development
+  
+---
+apiVersion: v1
+stringData: 
+  password: "password"
+  rootPassword: "pass12345"
+kind: Secret
+metadata:
+  name: db-secret
+  namespace: development
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: db
+  name: db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+      - image: mysql:5.7
+        name: db
+        args: ["--default-authentication-plugin=mysql_native_password"]
+        ports:
+        - containerPort: 3306
+          name: mysql
+        volumeMounts:
+          - name: mysql-persistent-storage
+            mountPath: /var/lib/mysql 
+          - name: mysql-initdb
+            mountPath: /docker-entrypoint-initdb.d
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: rootPassword
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: password      
+        - name: MYSQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: db-config
+              key: database
+        - name: MYSQL_USER
+          valueFrom:
+            configMapKeyRef:
+              name: db-config
+              key: user
+        imagePullPolicy: Always
+        
+      volumes:
+      - name: mysql-persistent-storage
+        persistentVolumeClaim:
+          claimName: mysql-pv-claim2
+      - name: mysql-initdb
+        configMap:
+          name: mysql-initdb-config
